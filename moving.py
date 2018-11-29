@@ -209,7 +209,6 @@ def searcher(img):
 		StartPoint = tuple(c[c[:, :, 0].argmin()][0])
 		EndPoint = tuple(c[c[:, :, 0].argmax()][0])
 		angle_range=calc_angle_range(StartPoint,EndPoint)
-		print(angle_range)
 		if abs(angle_range[1]-angle_range[0])>10:
 			new_angle1 = angle_range[1]
 			new_angle2 = angle_range[0]
@@ -219,13 +218,11 @@ def searcher(img):
 				new_angle2 = new_angle2 + 360
 			angle = 360-(((new_angle1 + new_angle2)/2)%360)
 			find = True
-			print("found")
 		else:
-			#print("found but keep searching")
+			#found but keep searching
 			angle=90
 	elif not find:
 		angle=90
-		print("bla")
 	done_searching = True
 	#rospy.signal_shutdown("reason")
 
