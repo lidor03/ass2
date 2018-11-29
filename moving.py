@@ -20,16 +20,17 @@ angle_range=None
 PI = 3.1415926535897
 Dist=None
 COLORS = ['red','green','blue']
-RANGES =[([90,0,0], [255, 100, 100]),([0,90,0], [50, 255, 50]),([0,0,40], [100, 100, 255])]
+RANGES =[([90,0,0], [255, 100, 100]),([0,90,0], [30, 255, 30]),([0,0,90], [80, 80, 255])]
 color = None
 find = False
 colored = False
 angle = None
 Done = False
 done_searching=False
+got_dist = False
 def callback_ass1(msg):
 	global move,Done,sub,pub
-	if msg.ranges[0]>0.9:
+	if msg.ranges[0]>0.5:
 		move.linear.x = 0.5
 		move.angular.z = 0
 		pub.publish(move)
@@ -37,7 +38,6 @@ def callback_ass1(msg):
 		move.linear.x = 0
 		move.angular.z = 0
 		pub.publish(move)
-		Done = True
 	
 
 def ass1():
@@ -71,11 +71,10 @@ def ass2():
 	move.angular.z=0
 	pub.publish(move)
 	rospy.spin()
-	rospy.signal_shutdown("reason")
 
 
 def find_dist(msg):
-	global angle_range,Dist
+	global angle_range,Dist,got_dist
 	b=angle_range[0]
 	a=	angle_range[1]
 	if(angle_range[0]<angle_range[1]):
@@ -87,7 +86,7 @@ def find_dist(msg):
 			min_dist = msg.ranges[x]
 	if min_dist != 7000:
 		Dist = min_dist
-	rospy.signal_shutdown("reason")
+	got_dist = True
 
 def calc_angle_range(Start,End):
 	Xstart=Start[0]-400
@@ -96,7 +95,7 @@ def calc_angle_range(Start,End):
 
 def get_laser_distance():
 	sub = rospy.Subscriber('/scan', LaserScan, find_dist)
-	rospy.spin()
+
 
 
 def get_distance(img):
@@ -145,12 +144,14 @@ def get_distance(img):
 
 
 def ass3():
-	global k, Dist,color,Done
+	global k, Dist,color,Done,got_dist
 	color=raw_input("Enter color:")
 	rospy.init_node('im')
 	k=rospy.Subscriber('/camera/image_raw',Image,get_distance)
-	rospy.spin()
+	while not got_dist:
+		pass
 	print(Dist)
+	rospy.signal_shutdown("reason")
 
 def move_with_angle(angle):
 	global pub,sub, move
@@ -208,15 +209,22 @@ def searcher(img):
 		StartPoint = tuple(c[c[:, :, 0].argmin()][0])
 		EndPoint = tuple(c[c[:, :, 0].argmax()][0])
 		angle_range=calc_angle_range(StartPoint,EndPoint)
+		print(angle_range)
 		if abs(angle_range[1]-angle_range[0])>10:
-			angle = ((360 - angle_range[1] + 360 - angle_range[0])%360)/2
+			new_angle1 = angle_range[1]
+			new_angle2 = angle_range[0]
+			if 0 <= new_angle1 <= 40:
+				new_angle1 = new_angle1 + 360
+			if 0 <= new_angle2 <= 40:
+				new_angle2 = new_angle2 + 360
+			angle = 360-(((new_angle1 + new_angle2)/2)%360)
 			find = True
 			print("found")
 		else:
 			#print("found but keep searching")
-			angle=80
+			angle=90
 	elif not find:
-		angle=80
+		angle=90
 		print("bla")
 	done_searching = True
 	#rospy.signal_shutdown("reason")
@@ -255,6 +263,7 @@ def ass4():
 		if find and Done:
 			break
 		Done = False 
+	rospy.signal_shutdown("reason")
 		#sub = rospy.Subscriber('/scan', LaserScan, callback_ass4)
 		#pub = rospy.Publisher('cmd_vel', Twist, queue_size = 10)
 		
@@ -263,7 +272,7 @@ funcs = (ass1,ass2,ass3,ass4)
 
 def main():
 	global funcs
-	print("choose an option:\n1\n2\n3\n4")
+	print("choose an option:\n1.Move forward\n2.Turn around\n3.Distance to object with color X\n4.Find object with color X")
 	option = int(input())
 	funcs[option-1]()
 if __name__=='__main__':
